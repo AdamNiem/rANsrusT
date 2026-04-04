@@ -68,6 +68,6 @@
 
 
 /// The coder module with an encoder and a decoder
-mod coder;
+mod rans;
 
-pub use crate::coder::{ANSCoder, ANSDecoder};
+pub use crate::rans::{ANSCoder, ANSDecoder};
