@@ -5,7 +5,6 @@
         unstable_features,
         unused_import_braces, unused_qualifications)]
 
-#![allow(non_snake_case)]
 
 //! This crate implements common Asymmetric numeral systems coding algorithms
 //!
