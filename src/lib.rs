@@ -67,7 +67,59 @@
 //! ```
 
 
+//! [Huffman compression](https://en.wikipedia.org/wiki/Huffman_coding)
+//! given a probability distribution over arbitrary symbols.
+//!
+//! # Examples
+//!
+//! ```rust
+//! extern crate bit_vec;
+//! extern crate huffman_compress;
+//!
+//! # use std::error::Error;
+//! #
+//! # fn try_main() -> Result<(), Box<dyn Error>> {
+//! use std::iter::FromIterator;
+//! use std::collections::HashMap;
+//! use bit_vec::BitVec;
+//! use huffman_compress::{CodeBuilder, Book, Tree};
+//!
+//! let mut weights = HashMap::new();
+//! weights.insert("CG", 293);
+//! weights.insert("AG", 34);
+//! weights.insert("AT", 4);
+//! weights.insert("CT", 4);
+//! weights.insert("TG", 1);
+//!
+//! // Construct a Huffman code based on the weights (e.g. counts or relative
+//! // frequencies).
+//! let (book, tree) = CodeBuilder::from_iter(weights).finish();
+//!
+//! // More frequent symbols will be encoded with fewer bits.
+//! assert!(book.get("CG").map_or(0, |cg| cg.len()) <
+//!         book.get("AG").map_or(0, |ag| ag.len()));
+//!
+//! // Encode some symbols using the book.
+//! let mut buffer = BitVec::new();
+//! let example = vec!["AT", "CG", "AT", "TG", "AG", "CT", "CT", "AG", "CG"];
+//! for symbol in &example {
+//!     book.encode(&mut buffer, symbol);
+//! }
+//!
+//! // Decode the symbols using the tree.
+//! let decoded: Vec<&str> = tree.decoder(&buffer, example.len()).collect();
+//! assert_eq!(decoded, example);
+//! #     Ok(())
+//! # }
+//! #
+//! # fn main() {
+//! #     try_main().unwrap();
+//! # }
+//! ```
+
 /// The coder module with an encoder and a decoder
 mod rans;
+mod huffman;
 
 pub use crate::rans::{ANSCoder, ANSDecoder};
+pub use crate::huffman::{decoder, encode};
