@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use std::time::Instant;
 
-use rans::{ANSCoder, ANSDecoder};
+use ransrust::{ANSCoder, ANSDecoder};
 
 fn vec_compare<N: std::cmp::PartialEq + Copy>(va: &[N], vb: &[N]) -> bool {
     va.iter().zip(vb).all(|(&a, &b)| a == b)

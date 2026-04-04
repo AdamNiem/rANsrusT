@@ -5,6 +5,8 @@
         unstable_features,
         unused_import_braces, unused_qualifications)]
 
+#![allow(non_snake_case)]
+
 //! This crate implements common Asymmetric numeral systems coding algorithms
 //!
 //!
@@ -12,7 +14,7 @@
 //! # Quickstart
 //! ## Encoding
 //! ```ignore
-//! use rans::ANSCoder;
+//! use ransrust::ANSCoder;
 //! use std::fs::File;
 //! use std::io::Read;
 //!
@@ -35,7 +37,7 @@
 //! ## Decoding
 //!
 //! ```
-//! # use rans::ANSCoder;
+//! # use ransrust::ANSCoder;
 //! # use std::fs::File;
 //! # use std::io::Read;
 //! # let mut data: Vec<u8> = vec![];
@@ -52,7 +54,7 @@
 //! #   ans.encode_symbol(*symbol);
 //! # }
 //! # let encoded = ans.get_encoded();
-//! use rans::ANSDecoder;
+//! use ransrust::ANSDecoder;
 //! // Construct decoder with the same stats object as the encoder
 //! let mut decoder = ANSDecoder::new(encoded);
 //! decoder.stats = ans.stats;
