@@ -122,4 +122,4 @@ mod rans;
 mod huffman;
 
 pub use crate::rans::{ANSCoder, ANSDecoder};
-pub use crate::huffman::{decoder, encode};
+pub use crate::huffman::{Book, Tree, Decoder, CodeBuilder, EncodeError, codebook};

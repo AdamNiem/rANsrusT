@@ -5,3 +5,9 @@ edition = "2024"
 
 [dependencies]
 rand = "0.8.4"
+
+bit-vec = "0.8"
+num-traits = "0.2"
+
+[dev-dependencies]
+quickcheck = "1"
