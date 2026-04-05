@@ -9,3 +9,13 @@ Hugo Cisneros, *rust-rans: A Rust implementation of range Asymmetric Numeral Sys
 Fiekas, Niklas. rust-huffman-compress. GitHub, https://github.com/niklasf/rust-huffman-compress.
 ```
 
+```text
+Challenges to talk about:
+- Learning Rust
+- Uniform Random Data
+  - Huffman CR 1
+  - ANS CR Slightly <1. Normalization code has rounding logic that cna slightly misrepersent true uniform distributions. 
+- rANS initally used a BTree (O(log n)) for encoding. Replaced with FastBook (O(1)) and BitReader
+```
+
+`
