@@ -1,11 +1,10 @@
-extern crate quickcheck;
-
 use bit_vec::BitVec;
 
 use std::collections::HashMap;
 
-use ransrust::{Decoder, encode}
-use ransrust::huffman::HuffmanCoder
+use ransrust::{CodeBuilder, codebook};
+
+use quickcheck::quickcheck;
 
 #[test]
 fn test_uniform() {

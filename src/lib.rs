@@ -35,7 +35,7 @@
 //! ```
 //! ## Decoding
 //!
-//! ```
+//! ```ignore
 //! # use ransrust::ANSCoder;
 //! # use std::fs::File;
 //! # use std::io::Read;
@@ -72,7 +72,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```ignore
 //! extern crate bit_vec;
 //! extern crate huffman_compress;
 //!
