@@ -11,7 +11,6 @@ fn vec_compare<N: std::cmp::PartialEq + Copy>(va: &[N], vb: &[N]) -> bool {
 }
 
 fn rans_benchmark_test(path: &str) {
-    let path = "enwik8";
     println!("Looking for file at: {:?}",
              std::fs::canonicalize(".").unwrap()
     );
@@ -38,20 +37,20 @@ fn rans_benchmark_test(path: &str) {
 
     let mut ans = ANSCoder::new_static(&probs);
 
-    println!("Normal:");
-    for _ in 0..5 {
-        ans = ANSCoder::new_static(&probs);
-        let now = Instant::now();
-        for symbol in data.iter() {
-            ans.encode_symbol(*symbol);
-        }
-        let dur = now.elapsed();
-        println!(
-            "\t{:.3} seconds elapsed, {:.3}MiB/sec",
-            dur.as_millis() as f64 / 1000.,
-            data.len() as f64 / (2_f64.powf(20.) * dur.as_nanos() as f64 / 1e9)
-        );
-    }
+    // println!("Normal:");
+    // for _ in 0..5 {
+    //     ans = ANSCoder::new_static(&probs);
+    //     let now = Instant::now();
+    //     for symbol in data.iter() {
+    //         ans.encode_symbol(*symbol);
+    //     }
+    //     let dur = now.elapsed();
+    //     println!(
+    //         "\t{:.3} seconds elapsed, {:.3}MiB/sec",
+    //         dur.as_millis() as f64 / 1000.,
+    //         data.len() as f64 / (2_f64.powf(20.) * dur.as_nanos() as f64 / 1e9)
+    //     );
+    // }
 
     // println!("Update probs every 10000 tokens:");
     // for _ in 0..5 {
@@ -71,7 +70,7 @@ fn rans_benchmark_test(path: &str) {
     //     );
     // }
 
-    println!("Optimized:");
+    println!("rANS Optimized:");
     for _ in 0..5 {
         ans = ANSCoder::new_precomp(&probs);
         let now = Instant::now();
@@ -179,4 +178,28 @@ fn test_rans_nyx() {
 #[test]
 fn test_huffman_nyx() {
     huffman_benchmark_test("SDRBENCH-EXASKY-NYX-512x512x512/temperature.f32");
+}
+
+#[test]
+fn test_rans_rand() {
+    let mut state: u64 = 12345;
+    let data: Vec<u8> = (0..100_000_000).map(|_| {
+        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        (state >> 56) as u8
+    }).collect();
+    std::fs::write("random.bin", &data).unwrap();
+
+    rans_benchmark_test("random.bin");
+}
+
+#[test]
+fn test_huffman_rand() {
+    let mut state: u64 = 12345;
+    let data: Vec<u8> = (0..100_000_000).map(|_| {
+        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        (state >> 56) as u8
+    }).collect();
+    std::fs::write("random.bin", &data).unwrap();
+
+    huffman_benchmark_test("random.bin");
 }
