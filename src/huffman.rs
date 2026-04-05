@@ -398,3 +398,130 @@ where
     CodeBuilder::from_iter(weights).finish()
 }
 
+
+/// A fast encoder for `u8` symbols using a flat array lookup instead of a
+/// BTreeMap. Codewords are packed MSB-first into a u64 and flushed to a
+/// `Vec<u8>` a word at a time, avoiding the per-bit overhead of `BitVec`.
+///
+/// Build from an existing `Book<u8>` with [`FastBook::from_book`], then encode
+/// with [`FastBook::encode`]. Decode the output using [`BitReader`] with the
+/// original `Tree<u8>`.
+#[derive(Debug)]
+pub struct FastBook {
+    /// (MSB-aligned codeword, bit length). Index is the symbol value.
+    codes: [(u64, u8); 256],
+}
+
+impl FastBook {
+    /// Builds a `FastBook` from a `Book<u8>`.
+    pub fn from_book(book: &Book<u8>) -> FastBook {
+        let mut codes = [(0u64, 0u8); 256];
+        for (&symbol, bitvec) in book.iter() {
+            let len = bitvec.len() as u8;
+            // Pack bits MSB-first into a u64
+            let mut word = 0u64;
+            for (i, bit) in bitvec.iter().enumerate() {
+                if bit {
+                    word |= 1u64 << (63 - i);
+                }
+            }
+            codes[symbol as usize] = (word, len);
+        }
+        FastBook { codes }
+    }
+
+    /// Encodes a slice of bytes into a packed bit stream (`Vec<u8>`).
+    /// Bits are written MSB-first within each byte, matching [`BitReader`].
+    pub fn encode(&self, data: &[u8]) -> Vec<u8> {
+        // Pre-allocate assuming ~6 bits per symbol on average
+        let mut output = Vec::with_capacity(data.len() * 6 / 8 + 8);
+        let mut buf: u64 = 0; // accumulator, filled from MSB
+        let mut bits: u32 = 0; // number of valid bits in buf
+
+        for &symbol in data {
+            let (codeword, len) = self.codes[symbol as usize];
+            let len = len as u32;
+
+            if bits + len > 64 {
+                // Overflow: fill remainder of buf, flush, carry overflow into new buf
+                let overflow = bits + len - 64;
+                buf |= codeword >> bits;
+                output.extend_from_slice(&buf.to_be_bytes());
+                // The overflowed bits are the lowest `overflow` bits of the codeword,
+                // shifted to MSB position in the new buffer
+                buf = if overflow > 0 {
+                    codeword << (len - overflow)
+                } else {
+                    0
+                };
+                bits = overflow;
+            } else {
+                buf |= codeword >> bits;
+                bits += len;
+                // Flush exactly when full to avoid a branch in the common path
+                if bits == 64 {
+                    output.extend_from_slice(&buf.to_be_bytes());
+                    buf = 0;
+                    bits = 0;
+                }
+            }
+        }
+
+        // Flush any remaining partial byte(s)
+        if bits > 0 {
+            let bytes = ((bits + 7) / 8) as usize;
+            output.extend_from_slice(&buf.to_be_bytes()[..bytes]);
+        }
+
+        output
+    }
+
+    /// Returns the encoded bit length of a single symbol.
+    pub fn code_len(&self, symbol: u8) -> u8 {
+        self.codes[symbol as usize].1
+    }
+}
+
+/// An iterator over bits in a packed byte slice, MSB-first.
+/// Use this to feed `Tree::decoder` when decoding output from [`FastBook::encode`].
+///
+/// # Example
+/// ```ignore
+/// let encoded = fast_book.encode(&data);
+/// let reader = BitReader::new(&encoded);
+/// let decoded: Vec<u8> = tree.decoder(reader, data.len()).collect();
+/// ```
+#[derive(Debug)]
+pub struct BitReader<'a> {
+    data: &'a [u8],
+    byte_pos: usize,
+    bit_pos: u8, // 0 = MSB, 7 = LSB
+}
+
+impl<'a> BitReader<'a> {
+    /// Creates a new `BitReader` over the given byte slice.
+    pub fn new(data: &'a [u8]) -> Self {
+        BitReader {
+            data,
+            byte_pos: 0,
+            bit_pos: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for BitReader<'a> {
+    type Item = bool;
+
+    fn next(&mut self) -> Option<bool> {
+        if self.byte_pos >= self.data.len() {
+            return None;
+        }
+        let bit = (self.data[self.byte_pos] >> (7 - self.bit_pos)) & 1 == 1;
+        self.bit_pos += 1;
+        if self.bit_pos == 8 {
+            self.bit_pos = 0;
+            self.byte_pos += 1;
+        }
+        Some(bit)
+    }
+}
