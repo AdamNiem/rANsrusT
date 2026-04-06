@@ -4,6 +4,8 @@ use std::time::Instant;
 
 use std::collections::HashMap;
 
+use ransrust::arithmetic::{ArithmeticEncoder, ArithmeticDecoder, SymbolStats};
+
 use ransrust::{codebook, ANSCoder, ANSDecoder, FastBook, BitReader};
 
 fn vec_compare<N: std::cmp::PartialEq + Copy>(va: &[N], vb: &[N]) -> bool {
@@ -160,6 +162,73 @@ fn huffman_benchmark_test(path: &str) {
     println!("Decoding ok!");
 }
 
+fn arithmetic_benchmark_test(path: &str) {
+    println!("Looking for file at: {:?}", std::fs::canonicalize(".").unwrap());
+    
+    if !std::path::Path::new(path).exists() {
+        eprintln!("Skipping arithmetic test - run data.sh first");
+        return;
+    }
+
+    let mut data: Vec<u8> = vec![];
+    let mut f = File::open(path).unwrap();
+    f.read_to_end(&mut data).unwrap();
+
+    // Compute probabilities for every token in document
+    let mut probs = vec![0u32; 256];
+    for c in data.iter() {
+        probs[*c as usize] += 1;
+    }
+
+    println!("Total tokens: {}", probs.iter().sum::<u32>());
+
+    let mut encoded = Vec::new();
+
+    println!("Arithmetic Encoding:");
+    for _ in 0..5 {
+        let mut encoder = ArithmeticEncoder::new_static(&probs);
+        let now = Instant::now();
+        
+        for symbol in data.iter() {
+            encoder.encode_symbol(*symbol);
+        }
+        encoder.finish(); // Flush final bits
+        
+        let dur = now.elapsed();
+        println!(
+            "\t{:.3} seconds elapsed, {:.3}MiB/sec",
+            dur.as_millis() as f64 / 1000.,
+            data.len() as f64 / (2_f64.powf(20.) * dur.as_nanos() as f64 / 1e9)
+        );
+        
+        // This moves the encoder, so we overwrite the loop variable.
+        // It will hold the final run's data when the loop exits.
+        encoded = encoder.get_encoded(); 
+    }
+
+    // Since Arithmetic outputs u8, we don't multiply by 4 like ANS
+    println!("Encoded data size {}", encoded.len());
+    println!("Compression ratio: {:.3}",
+             data.len() as f64 / encoded.len() as f64
+    );
+
+    // Decode data
+    let mut decoder = ArithmeticDecoder::new(encoded);
+    
+    // Create a fresh stats object for the decoder using the same probs
+    decoder.stats = SymbolStats::new_static(&probs); 
+    
+    let mut decoded_data = vec![];
+    let length_decoded = data.len();
+
+    for _ in 0..length_decoded {
+        decoded_data.push(decoder.decode_symbol().unwrap());
+    }
+
+    assert!(vec_compare(&data, &decoded_data));
+    println!("Decoding ok!");
+}
+
 #[test]
 fn test_rans_enwik8() {
    rans_benchmark_test("enwik8");
@@ -171,6 +240,11 @@ fn test_huffman_enwik8() {
 }
 
 #[test]
+fn test_arithmetic_enwik8() {
+    arithmetic_benchmark_test("enwik8");
+}
+
+#[test]
 fn test_rans_nyx() {
    rans_benchmark_test("SDRBENCH-EXASKY-NYX-512x512x512/temperature.f32");
 }
@@ -178,6 +252,11 @@ fn test_rans_nyx() {
 #[test]
 fn test_huffman_nyx() {
     huffman_benchmark_test("SDRBENCH-EXASKY-NYX-512x512x512/temperature.f32");
+}
+
+#[test]
+fn test_arithmetic_nyx() {
+    arithmetic_benchmark_test("SDRBENCH-EXASKY-NYX-512x512x512/temperature.f32");
 }
 
 #[test]
@@ -202,4 +281,16 @@ fn test_huffman_rand() {
     std::fs::write("random.bin", &data).unwrap();
 
     huffman_benchmark_test("random.bin");
+}
+
+#[test]
+fn test_arithmetic_rand() {
+    let mut state: u64 = 12345;
+    let data: Vec<u8> = (0..100_000_000).map(|_| {
+        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        (state >> 56) as u8
+    }).collect();
+    std::fs::write("random.bin", &data).unwrap();
+
+    arithmetic_benchmark_test("random.bin");
 }
