@@ -1,6 +1,4 @@
 
-
-
 Citations:
 
 ``` text
@@ -11,6 +9,10 @@ Fiekas, Niklas. rust-huffman-compress. GitHub, https://github.com/niklasf/rust-h
 https://sdrbench.github.io/
 
 https://mattmahoney.net/dc/textdata.html
+
+For the rust port of the C++ implementation of Arithmetic Encoding : 
+As provided by Nayuki (with modifications) on github https://github.com/nayuki/Reference-arithmetic-coding/tree/master/cpp
+
 ```
 
 Remember:
@@ -23,4 +25,3 @@ Challenges to talk about:
   - ANS CR Slightly <1. Normalization code has rounding logic that cna slightly misrepersent true uniform distributions. 
 - rANS initally used a BTree (O(log n)) for encoding. Replaced with FastBook (O(1)) and BitReader
 ```
-
